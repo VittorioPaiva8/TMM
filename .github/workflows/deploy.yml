@@ -1,0 +1,50 @@
+name: Publicar no Firebase
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir configuração
+        id: cfg
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: |
+          if [ -z "$KEY" ] || [ -z "$PROJECT" ]; then
+            echo "::warning::Falta configurar FIREBASE_SERVICE_ACCOUNT (secret) ou FIREBASE_PROJECT_ID (variable). Veja o README."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.ok == 'true'
+        with:
+          node-version: 20
+
+      - name: Versão nova do cache do app
+        if: steps.cfg.outputs.ok == 'true'
+        run: sed -i "s/const CACHE='treino-v1'/const CACHE='treino-${GITHUB_SHA::7}'/" public/sw.js
+
+      - name: Publicar site e regras do banco
+        if: steps.cfg.outputs.ok == 'true'
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: |
+          printf '%s' "$KEY" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx -y firebase-tools@13.29.1 deploy --only hosting,firestore:rules --project "$PROJECT" --non-interactive --force
+          rm -f "$RUNNER_TEMP/sa.json"
+          echo "Publicado em https://$PROJECT.web.app"

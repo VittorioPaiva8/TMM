@@ -21,19 +21,40 @@ O app usa Firebase Hosting (site), Authentication (login Google) e Firestore (ba
 - Local: **southamerica-east1 (São Paulo)**
 - Modo: **produção** (as regras de segurança vão junto na publicação)
 
-## 4. Publicar pelo computador (5 min)
+## 4. Publicação automática pelo GitHub (uma vez só, 10 min)
 
-No terminal (PowerShell), dentro da pasta do repositório:
+Cada mudança enviada para a branch `main` é publicada sozinha pelo GitHub Actions (aba **Actions** do repositório).
+
+**4a. Criar a conta de serviço no Google Cloud**
+1. Abra https://console.cloud.google.com/iam-admin/serviceaccounts com a mesma conta do Firebase e escolha o projeto no seletor lá em cima.
+2. **+ Criar conta de serviço** › nome `github-deploy` › **Criar e continuar**.
+3. Em **Papel**, adicione dois:
+   - **Administrador do Firebase** (Firebase Admin)
+   - **Consumidor do Service Usage** (Service Usage Consumer)
+4. **Continuar** › **Concluído**.
+5. Clique na conta `github-deploy` › aba **Chaves** › **Adicionar chave › Criar nova chave** › **JSON** › **Criar**. Baixa um arquivo `.json`.
+
+**4b. Colocar no GitHub**
+No repositório: **Settings › Secrets and variables › Actions**:
+- Aba **Secrets** › **New repository secret**:
+  - Name: `FIREBASE_SERVICE_ACCOUNT`
+  - Secret: abra o `.json` no Bloco de Notas, copie **tudo** e cole aqui.
+- Aba **Variables** › **New repository variable**:
+  - Name: `FIREBASE_PROJECT_ID`
+  - Value: o ID do projeto (aparece em Configurações do projeto no Firebase, tipo `treino-vittorio-1a2b3`).
+
+Depois apague o `.json` do computador: ele dá acesso ao projeto.
+
+**4c. Primeira publicação**
+Aba **Actions** › **Publicar no Firebase** › **Run workflow**. Em 1 ou 2 minutos fica verde, e o link do app aparece no final do log: `https://SEU-ID.web.app`.
+
+### Publicar pelo computador (alternativa)
 
 ```powershell
 npm install -g firebase-tools
 firebase login
-firebase use --add
-firebase deploy
+firebase deploy --project SEU-ID
 ```
-
-- No `firebase use --add`, escolha o projeto criado no passo 1 e digite `default` como apelido.
-- No fim do `firebase deploy` aparece o link do app, no formato `https://treino-vittorio.web.app`.
 
 ## 5. Instalar no celular
 
@@ -43,7 +64,7 @@ Abra o link no celular e entre com o Google.
 
 ## Atualizar depois
 
-Troque os arquivos em `public/` e rode `firebase deploy` de novo. O app no celular pega a versão nova na próxima vez que abrir com internet.
+É só enviar a mudança para a branch `main`: o GitHub publica sozinho. O app no celular pega a versão nova na próxima vez que abrir com internet.
 
 ## O que fica onde
 
@@ -52,3 +73,4 @@ Troque os arquivos em `public/` e rode `firebase deploy` de novo. O app no celul
 - `public/manifest.webmanifest` e `public/icons/`: nome e ícone na tela inicial
 - `firestore.rules`: cada conta só lê e grava os próprios treinos
 - `firebase.json`: configuração da publicação
+- `.github/workflows/deploy.yml`: publicação automática pelo GitHub
