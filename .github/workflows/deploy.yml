@@ -13,7 +13,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Conferir configuração
         id: cfg
@@ -28,7 +28,7 @@ jobs:
             echo "ok=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         if: steps.cfg.outputs.ok == 'true'
         with:
           node-version: 20
@@ -45,6 +45,7 @@ jobs:
         run: |
           printf '%s' "$KEY" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
-          npx -y firebase-tools@13.29.1 deploy --only hosting,firestore:rules --project "$PROJECT" --non-interactive --force
+          node -e 'const k=require(process.argv[1]);console.log("Conta de serviço:",k.client_email,"| projeto da chave:",k.project_id)' "$RUNNER_TEMP/sa.json" || echo "::error::O secret FIREBASE_SERVICE_ACCOUNT não é um JSON válido. Cole o conteúdo inteiro do arquivo."
+          npx -y firebase-tools@13.29.1 deploy --only hosting,firestore:rules --project "$PROJECT" --non-interactive --force ${{ runner.debug == '1' && '--debug' || '' }}
           rm -f "$RUNNER_TEMP/sa.json"
           echo "Publicado em https://$PROJECT.web.app"
